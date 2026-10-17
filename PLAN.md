@@ -15,6 +15,6 @@
 - [x] Review history for private details, then publish the repository publicly on GitHub (BDFN approved 2026-10-17) and confirm the first CI build: 74d1a04 passed in 73 s, badge PASSING. (2026-10-17 00:46 EDT)
 - [ ] Obtain native iPhone visual, Home Screen, rotation, offline and wake-lock verification.
 - [ ] Decide portrait rotation direction (currently 90° clockwise) after on-device check.
-- [ ] Host the app on GitHub Pages (BDFN choice, 2026-10-17): verify subpath serving, service worker scope and install there.
-- [ ] README: screenshots and a link to the live app.
+- [x] Host the app on GitHub Pages (BDFN choice): https://pmarreck.github.io/led_sign/ deployed by .github/workflows/pages.yml; subpath browser test added; live site verified in headless Chromium, including service worker scope and offline reload (2026-10-17 08:35 EDT). Mechatron Prime CI passed 529f7d9 in 75 s.
+- [x] README: screenshots, MIT badge and a link to the live app (2026-10-17 08:24 EDT).
 - [ ] Browser checks on macOS: nixpkgs has no Darwin Chromium; ./test needs LED_SIGN_CHROMIUM or Google Chrome there.
