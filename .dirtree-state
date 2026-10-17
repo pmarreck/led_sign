@@ -13,9 +13,11 @@ annotate=[
 	tests/cli/led-sign.test = Bash CLI contract tests for bin/led-sign: help/about, argument errors, real serve incl. symlinked path
 	tests/integration/wasm.test.mjs = Tests against compiled dist/led-sign.wasm ABI
 	tests/unit/model.test.mjs = Unit tests for web/model.mjs
+	tests/unit/pixelfont.test.mjs = Pixel font tests: glyph set integrity, descender set, whole-LED scaling, layout, fallback, width limit
 	web/app.mjs = DOM wiring: controls, display mode, wake lock, fullscreen, install sheet, service worker
 	web/led.mjs = Sign class: feeds WASM mask, paints frame at integer cell scale with LED shape pattern
 	web/model.mjs = Pure settings normalize, viewport/displayLayout square-cell math, LED tile alpha, storage, share links
-	web/raster.mjs = System-font text rasterized to a rows-tall alpha mask
+	web/pixelfont.mjs = Built-in 5x7(+2 descender) LED pixel font for Mono: GLYPHS, pixelScale, pixelRaster with injected system fallback
+	web/raster.mjs = Text to alpha mask: FONT_STACKS, fontInstalled width probe, Mono picks Berkeley Mono or pixelfont, rasterize
 	web/sw.js = Cache-first offline service worker; version stamped at build
 ]

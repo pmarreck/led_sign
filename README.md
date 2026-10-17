@@ -13,7 +13,11 @@ HTML/CSS/JavaScript layer handles the page, storage and browser features.
 
 1. The browser draws the message with a system font into an alpha mask exactly
    as tall as the sign has LED rows. That gives full Unicode shaping and emoji
-   without shipping font files.
+   without shipping font files. The Mono style uses Berkeley Mono when it is
+   installed; otherwise it uses a built-in 5×7 dot-matrix font scaled by a
+   whole number of LEDs, because system monospace fonts at sign heights of
+   about ten LEDs per character threshold into uneven strokes. Characters
+   outside printable ASCII still go through the system font.
 2. The WASM core (`src/core.zig`) turns the mask, elapsed time and settings into
    one RGBA value per LED: scroll position, color, ghost LEDs, invert, mirror,
    blink and repeat. It performs no I/O and is tested natively.
@@ -53,7 +57,7 @@ prompt get a direct Install button instead.
 | Feature | Status |
 | --- | --- |
 | Hue, color intensity, brightness, speed, LED size | Implemented |
-| Fonts | Five system font styles (mono, sans, serif, heavy, rounded) |
+| Fonts | Five styles: mono (Berkeley Mono or a built-in LED pixel font), sans, serif, heavy, rounded |
 | Square or round LEDs, invert, mirror, blink, repeat, true black | Implemented; blink is off by default |
 | Saved messages | Implemented, stored locally; works without storage for the session |
 | Share | Share link: a URL fragment that opens straight into the sign |
@@ -87,11 +91,13 @@ considered confirmed.
 | `src/core.zig` | Pure LED core: timing, color, validation, frame rendering, tests |
 | `src/wasm.zig` | WebAssembly exports: static mask/frame buffers, `render`, `complete` |
 | `web/model.mjs` | Pure settings, layout, LED tile and storage logic |
-| `web/raster.mjs` | System-font text to alpha mask |
+| `web/raster.mjs` | Text to alpha mask: system fonts, font detection, Mono selection |
+| `web/pixelfont.mjs` | Built-in 5×7 LED pixel font with whole-LED scaling and system fallback |
 | `web/led.mjs` | Canvas painter for one WASM instance |
 | `web/app.mjs` | Page wiring: controls, display mode, wake lock, install, service worker |
 | `scripts/` | Web build, icon generator, local static server |
-| `tests/` | `unit`, `integration` (actual WASM) and `browser` suites |
+| `bin/led-sign` | Serves the built site; also the Nix package's command |
+| `tests/` | `unit`, `integration` (actual WASM), `cli` and `browser` suites |
 
 ## License
 

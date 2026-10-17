@@ -57,6 +57,7 @@
 				nativeBuildInputs = [ pkgs.zig_0_16 pkgs.nodejs ] ++ browserFor pkgs;
 				LED_SIGN_ENV = "1";
 				FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
+				LED_SIGN_EXPECT_MONO = "pixel";
 				dontConfigure = true;
 				buildPhase = ''
 					${zigEnv}

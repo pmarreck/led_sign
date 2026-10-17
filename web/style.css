@@ -174,7 +174,7 @@ legend { color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; padding: 0;
 
 .choices input:focus-visible + span { outline: 3px solid var(--led); outline-offset: 2px; }
 
-.f-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.f-mono { font-family: "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace; }
 .f-sans { font-family: system-ui, sans-serif; }
 .f-serif { font-family: ui-serif, "New York", Georgia, serif; }
 .f-bold { font-family: system-ui, sans-serif; font-weight: 900; }

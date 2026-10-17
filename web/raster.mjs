@@ -1,9 +1,13 @@
 // Browser adapter: rasterizes text with the system font stack into an alpha
 // mask exactly `rows` pixels tall, so the browser handles Unicode shaping and
-// emoji while the WASM core decides which LEDs are lit.
+// emoji while the WASM core decides which LEDs are lit. The Mono style uses
+// Berkeley Mono when installed and otherwise the built-in LED pixel font.
+import { pixelRaster } from './pixelfont.mjs';
+
+export const PREFERRED_MONO = 'Berkeley Mono';
 
 export const FONT_STACKS = Object.freeze({
-	mono: '600 {px}px ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+	mono: '600 {px}px "Berkeley Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace',
 	sans: '600 {px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 	serif: '600 {px}px ui-serif, "New York", Georgia, serif',
 	bold: '900 {px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
@@ -29,6 +33,26 @@ function fit(font, rows) {
 	return { px, baseline: (ascent * px) / 100 };
 }
 
+// Whether a font family is installed: text set in it (with a generic fallback)
+// measures differently from the generic alone for at least one of two
+// generics. A width-comparison probe; FontFaceSet.check cannot tell for
+// local fonts.
+export function fontInstalled(family) {
+	const sample = 'mmmmmmmmmmlli10OQ@#';
+	return ['monospace', 'serif'].some((generic) => {
+		ctx.font = `72px ${generic}`;
+		const base = ctx.measureText(sample).width;
+		ctx.font = `72px "${family}", ${generic}`;
+		return ctx.measureText(sample).width !== base;
+	});
+}
+
+let monoFamily = null;
+function usePixelMono() {
+	if (monoFamily === null) monoFamily = fontInstalled(PREFERRED_MONO);
+	return !monoFamily;
+}
+
 // Width in LED columns of `text` rendered `rows` pixels tall.
 export function measure(text, font, rows) {
 	const { px } = fit(font, rows);
@@ -39,6 +63,11 @@ export function measure(text, font, rows) {
 // Returns { cols, alpha }: a row-major rows x cols alpha mask, or alpha null
 // when the message is wider than maxCols (the caller reports it; no truncation).
 export function rasterize(text, font, rows, maxCols) {
+	if (font === 'mono' && usePixelMono()) return pixelRaster(text, rows, maxCols, (run, h, max) => rasterizeSystem(run, font, h, max));
+	return rasterizeSystem(text, font, rows, maxCols);
+}
+
+function rasterizeSystem(text, font, rows, maxCols) {
 	const cols = measure(text, font, rows);
 	if (cols > maxCols) return { cols, alpha: null };
 	const { px, baseline } = fit(font, rows);

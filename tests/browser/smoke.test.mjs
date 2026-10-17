@@ -148,12 +148,14 @@ before(async () => {
 });
 
 after(async () => {
-	cdp?.close();
+	// Browser.close shuts Chromium down cleanly, child processes included,
+	// before the profile directory is removed; SIGTERM is only the fallback.
 	if (browser && browser.exitCode === null) {
 		const exited = new Promise((ok) => browser.once('exit', ok));
-		browser.kill();
+		await cdp?.send('Browser.close').catch(() => browser.kill());
 		await exited;
 	}
+	cdp?.close();
 	server?.close();
 	if (profile) await rm(profile, { recursive: true, force: true });
 });
@@ -210,6 +212,32 @@ test('round LEDs stay circular; square LEDs cover more of their cell', { timeout
 	assert.equal(round.corner, '0');
 	assert.equal(round.center, '1');
 	assert.ok(round.coverage < square.coverage && round.coverage > 0.5, `coverage ${round.coverage} vs ${square.coverage}`);
+	await page.close();
+});
+
+test('Mono uses Berkeley Mono when installed, otherwise the built-in pixel font', { timeout: 60000 }, async () => {
+	const page = await openPage(393, 852, 2);
+	const r = await page.eval(`(async () => {
+		const { rasterize, fontInstalled, PREFERRED_MONO } = await import('./raster.mjs');
+		const { pixelRaster } = await import('./pixelfont.mjs');
+		const text = 'HEH mw 01 gy';
+		const mono = rasterize(text, 'mono', 20, 8192);
+		const pixel = pixelRaster(text, 20, 8192, () => { throw new Error('unexpected fallback'); });
+		const accent = rasterize('é', 'mono', 20, 8192);
+		return {
+			berkeley: fontInstalled(PREFERRED_MONO),
+			detected: ['DejaVu Sans', 'Helvetica'].some(fontInstalled),
+			missing: fontInstalled('No Such Font 7f3a'),
+			pixelPath: mono.cols === pixel.cols && mono.alpha.every((a, i) => a === pixel.alpha[i]),
+			accentLit: accent.cols > 0 && accent.alpha.some((a) => a >= 128),
+		};
+	})()`);
+	assert.equal(r.detected, true, 'an installed system font is detected');
+	assert.equal(r.missing, false, 'a missing font is not detected');
+	assert.equal(r.pixelPath, !r.berkeley, 'pixel font exactly when Berkeley Mono is absent');
+	// The Nix check's fontconfig has only DejaVu, so it pins the pixel branch.
+	if (process.env.LED_SIGN_EXPECT_MONO) assert.equal(r.berkeley ? 'berkeley' : 'pixel', process.env.LED_SIGN_EXPECT_MONO);
+	assert.equal(r.accentLit, true, 'characters outside the pixel font still draw');
 	await page.close();
 });
 

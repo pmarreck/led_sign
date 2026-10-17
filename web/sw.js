@@ -2,7 +2,7 @@
 // digest of the shipped files, so each release replaces the previous cache.
 const CACHE = 'led-sign-__CACHE_VERSION__';
 const ASSETS = [
-	'./', 'index.html', 'style.css', 'app.mjs', 'model.mjs', 'led.mjs', 'raster.mjs',
+	'./', 'index.html', 'style.css', 'app.mjs', 'model.mjs', 'led.mjs', 'raster.mjs', 'pixelfont.mjs',
 	'led-sign.wasm', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
 ];
 

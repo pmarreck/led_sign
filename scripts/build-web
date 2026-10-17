@@ -7,7 +7,7 @@ optimize="${LED_SIGN_OPTIMIZE:-ReleaseFast}"
 zig build -Doptimize="$optimize" || exit 1
 staging="dist.tmp.$$"
 mkdir -p "$staging" || exit 1
-cp web/index.html web/style.css web/manifest.webmanifest web/app.mjs web/led.mjs web/model.mjs web/raster.mjs "$staging/" &&
+cp web/index.html web/style.css web/manifest.webmanifest web/app.mjs web/led.mjs web/model.mjs web/raster.mjs web/pixelfont.mjs "$staging/" &&
 	cp zig-out/bin/led-sign.wasm "$staging/" &&
 	node scripts/make-icons.mjs "$staging" || { mv "$staging" "${TMPDIR:-/tmp}/"; exit 1; }
 # The cache version is a digest of every shipped asset, so any change to the
