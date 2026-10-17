@@ -1,12 +1,16 @@
 # Dirtree: Stateful directory trees in the CLI for humans and LLMs. https://github.com/pmarreck/dirtree
 ver=1.2
 annotate=[
+	.mechatron-prime/targets = Flake attributes Mechatron Prime CI builds on each push
+	VERSION = Single source of the release version, read by bin/led-sign and flake.nix
+	bin/led-sign = Portable launcher: serves dist/ via scripts/serve.mjs (--port, --host, --about, --help); enters Nix in a checkout, pinned Node in the package
 	scripts/build-web = Builds dist/: optimized WASM, assets, icons, stamped SW
 	scripts/make-icons.mjs = Dependency-free PNG icon generator
 	scripts/serve.mjs = Static server for dist/ (./run and browser tests)
 	src/core.zig = Pure Zig LED core: scroll position, HSV color, validation, per-LED RGBA frame render + tests
 	src/wasm.zig = WASM exports: static mask/frame buffers, render(), complete()
 	tests/browser/smoke.test.mjs = Headless Chromium via CDP: pixel checks for square/round LEDs, offline, install flow
+	tests/cli/led-sign.test = Bash CLI contract tests for bin/led-sign: help/about, argument errors, real serve incl. symlinked path
 	tests/integration/wasm.test.mjs = Tests against compiled dist/led-sign.wasm ABI
 	tests/unit/model.test.mjs = Unit tests for web/model.mjs
 	web/app.mjs = DOM wiring: controls, display mode, wake lock, fullscreen, install sheet, service worker

@@ -10,7 +10,7 @@
 		browserEnv = pkgs: pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux { LED_SIGN_CHROMIUM = "${pkgs.chromium}/bin/chromium"; };
 		sourceFor = pkgs: pkgs.lib.fileset.toSource {
 			root = ./.;
-			fileset = pkgs.lib.fileset.unions [ ./src ./web ./tests ./scripts ./build.zig ./test ./build ];
+			fileset = pkgs.lib.fileset.unions [ ./src ./web ./tests ./scripts ./build.zig ./test ./build ./bin ./VERSION ];
 		};
 		zigEnv = ''
 			export HOME="$TMPDIR"
@@ -21,10 +21,11 @@
 		packages = forAll (system: let pkgs = pkgsFor system; in {
 			default = pkgs.stdenvNoCC.mkDerivation {
 				pname = "led-sign";
-				version = "0.1.0";
+				version = pkgs.lib.fileContents ./VERSION;
 				src = sourceFor pkgs;
 				strictDeps = true;
 				nativeBuildInputs = [ pkgs.zig_0_16 pkgs.nodejs ];
+				buildInputs = [ pkgs.bash ];
 				LED_SIGN_ENV = "1";
 				dontConfigure = true;
 				buildPhase = ''
@@ -32,7 +33,20 @@
 					patchShebangs scripts
 					bash scripts/build-web
 				'';
-				installPhase = ''mkdir -p "$out"; cp -R dist/. "$out/"'';
+				# Same relative layout as a checkout, so bin/led-sign finds dist/ and
+				# scripts/serve.mjs beside it; Node is pinned instead of entering Nix.
+				installPhase = ''
+					mkdir -p "$out/bin" "$out/scripts"
+					cp -R dist "$out/dist"
+					cp VERSION "$out/VERSION"
+					cp scripts/serve.mjs "$out/scripts/"
+					cp bin/led-sign "$out/bin/led-sign"
+					substituteInPlace "$out/bin/led-sign" --replace-fail "packaged_node='''" "packaged_node='${pkgs.nodejs}/bin/node'"
+					patchShebangs "$out/bin"
+				'';
+				doInstallCheck = true;
+				installCheckPhase = ''"$out/bin/led-sign" --about | grep -q "^led-sign ${pkgs.lib.fileContents ./VERSION}: "'';
+				meta.mainProgram = "led-sign";
 			};
 		});
 		checks = forAll (system: let pkgs = pkgsFor system; in {
@@ -46,7 +60,7 @@
 				dontConfigure = true;
 				buildPhase = ''
 					${zigEnv}
-					patchShebangs scripts test
+					patchShebangs scripts test bin tests
 					bash ./test
 				'';
 				installPhase = ''mkdir -p "$out"; echo "tests passed" > "$out/result"'';

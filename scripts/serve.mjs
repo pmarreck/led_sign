@@ -3,6 +3,7 @@
 // Serves only files inside the root; no directory listings.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { resolve, join, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,7 +36,9 @@ export function serve(root, { port = 0, host = '127.0.0.1' } = {}) {
 	return new Promise((ok) => server.listen(port, host, () => ok(server)));
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Node resolves symlinks for the module URL but not argv[1], so compare real
+// paths; otherwise launching through a symlinked directory silently exits.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
 	const port = Number(process.env.PORT ?? 8417);
 	const host = process.env.HOST ?? '127.0.0.1';
 	const server = await serve(process.argv[2] ?? 'dist', { port, host });

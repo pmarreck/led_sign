@@ -6,4 +6,4 @@ set -u
 cd -- "$(dirname -- "$0")" || exit 1
 if [ "${LED_SIGN_ENV:-}" != 1 ]; then exec nix develop -c bash ./run "$@"; fi
 bash ./build "$@" || exit 1
-exec node scripts/serve.mjs dist
+exec bash bin/led-sign

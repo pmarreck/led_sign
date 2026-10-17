@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# CLI contract tests for bin/led-sign: help, about, argument errors and a real
+# local serve of the built dist/ on an OS-assigned port. Run from ./test after
+# the web build; all output is captured and asserted, none leaks to the run.
+set -u
+cd -- "$(dirname -- "$0")/../.." || exit 1
+cli=bin/led-sign
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/led-sign-cli.XXXXXX")"
+failures=0
+
+pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
+fail() { printf '  \033[31m✖\033[0m %s\n' "$1"; failures=$((failures + 1)); }
+
+# Runs the CLI, leaving stdout, stderr and the exit status in out, err, status.
+capture() {
+	"$cli" "$@" >"$scratch/out" 2>"$scratch/err"
+	status=$?
+	out="$(cat "$scratch/out")"
+	err="$(cat "$scratch/err")"
+}
+
+expect() { if eval "$2"; then pass "$1"; else fail "$1 (status=$status out=[$out] err=[$err])"; fi; }
+
+capture --help
+expect '--help prints usage on stdout and exits 0' '[ "$status" = 0 ] && [[ "$out" == "Usage: led-sign"* ]] && [ -z "$err" ]'
+capture -h
+expect '-h matches --help' '[ "$status" = 0 ] && [[ "$out" == "Usage: led-sign"* ]]'
+
+os="$(uname -s)"; arch="$(uname -m)"
+case "$os" in Darwin) os=macos ;; Linux) os=linux ;; esac
+case "$arch" in arm64) arch=aarch64 ;; amd64|AMD64) arch=x86_64 ;; esac
+capture --about
+expect '--about prints one line with version and platform' '[ "$status" = 0 ] && [ "$(printf "%s\n" "$out" | wc -l)" = 1 ] && [[ "$out" == "led-sign $(cat VERSION): "*"($os $arch)" ]]'
+
+capture --bogus
+expect 'unknown option exits 2 with a message on stderr' '[ "$status" = 2 ] && [ -z "$out" ] && [[ "$err" == *"unknown option: --bogus"* ]]'
+capture --port
+expect '--port without a value exits 2' '[ "$status" = 2 ] && [[ "$err" == *"--port needs a value"* ]]'
+capture --port abc
+expect 'non-numeric --port exits 2' '[ "$status" = 2 ] && [[ "$err" == *"invalid port: abc"* ]]'
+capture --port 70000
+expect 'out-of-range --port exits 2' '[ "$status" = 2 ] && [[ "$err" == *"invalid port: 70000"* ]]'
+capture --host
+expect '--host without a value exits 2' '[ "$status" = 2 ] && [[ "$err" == *"--host needs a value"* ]]'
+
+# Serves the real dist/. The later --port 0 overrides --port 1, so the OS picks
+# a free port; the URL line on stderr is the readiness signal (no sleeps).
+mkfifo "$scratch/log"
+"$cli" --port 1 --host 127.0.0.1 --port 0 2>"$scratch/log" >/dev/null &
+pid=$!
+url=''
+if read -r -t 30 line <"$scratch/log"; then url="${line##* }"; fi
+status=0 out='' err="$line"
+expect 'serving announces a local URL on stderr' '[[ "$url" =~ ^http://127\.0\.0\.1:[0-9]+/$ ]] && [[ "$url" != *":1/" ]]'
+if [[ "$url" =~ ^http:// ]]; then
+	out="$(node -e 'fetch(process.argv[1]).then(async (r) => { process.stdout.write(r.status + " " + await r.text()); })' "$url" 2>&1)"
+	expect 'the served page is the LED Sign app' '[[ "$out" == "200 "*"<title>LED Sign</title>"* ]]'
+fi
+kill "$pid" 2>/dev/null
+wait "$pid" 2>/dev/null
+
+
+# Reached through a symlinked directory (as with a Nix result link), the
+# command must still serve rather than exit silently.
+ln -s "$PWD" "$scratch/linked"
+mkfifo "$scratch/log2"
+"$scratch/linked/bin/led-sign" --port 0 2>"$scratch/log2" >/dev/null &
+pid=$!
+line=''
+read -r -t 30 line <"$scratch/log2"
+status=0 out='' err="$line"
+expect 'serves when reached through a symlinked path' '[[ "$line" =~ http://127\.0\.0\.1:[0-9]+/$ ]]'
+kill "$pid" 2>/dev/null
+wait "$pid" 2>/dev/null
+find "$scratch" -delete
+if [ "$failures" -ne 0 ]; then printf '%d CLI check(s) failed\n' "$failures"; exit 1; fi

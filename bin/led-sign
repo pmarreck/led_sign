@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# led-sign: serves the offline LED sign web app (dist/) on a local address.
+# In a source checkout it enters the project's Nix shell for Node and builds
+# dist/ first if it is missing; the Nix package pins Node directly.
+set -u
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
+packaged_node=''
+
+usage() {
+	cat <<'USAGE'
+Usage: led-sign [--port N] [--host ADDRESS]
+
+Serves the LED Sign web app. Open the printed URL in a browser.
+
+  --port N          TCP port, 0 for any free port (default 8417, or $PORT)
+  --host ADDRESS    address to listen on (default 127.0.0.1, or $HOST)
+  --about           print a one-line description and exit
+  -h, --help        print this help and exit
+
+Offline use, keep-screen-awake and Home Screen install need a secure
+context: localhost, or HTTPS on any other address.
+USAGE
+}
+
+platform() {
+	local os arch
+	os="$(uname -s)"; arch="$(uname -m)"
+	case "$os" in Darwin) os=macos ;; Linux) os=linux ;; esac
+	case "$arch" in arm64) arch=aarch64 ;; amd64|AMD64) arch=x86_64 ;; esac
+	printf '%s %s' "$os" "$arch"
+}
+
+port="${PORT:-8417}"
+host="${HOST:-127.0.0.1}"
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-h|--help) usage; exit 0 ;;
+		--about) printf 'led-sign %s: offline LED sign web app server (%s)\n' "$(cat "$root/VERSION")" "$(platform)"; exit 0 ;;
+		--port|--host)
+			if [ $# -lt 2 ]; then printf 'led-sign: %s needs a value\n' "$1" >&2; exit 2; fi
+			if [ "$1" = --port ]; then port=$2; else host=$2; fi
+			shift ;;
+		*) printf 'led-sign: unknown option: %s\n' "$1" >&2; exit 2 ;;
+	esac
+	shift
+done
+if ! [[ "$port" =~ ^[0-9]{1,5}$ ]] || [ "$port" -gt 65535 ]; then
+	printf 'led-sign: invalid port: %s\n' "$port" >&2
+	exit 2
+fi
+
+node="$packaged_node"
+if [ -z "$node" ]; then
+	if [ "${LED_SIGN_ENV:-}" != 1 ]; then
+		exec nix develop "$root" -c bash "$root/bin/led-sign" --port "$port" --host "$host"
+	fi
+	node=node
+	if [ ! -f "$root/dist/index.html" ]; then bash "$root/build" || exit 1; fi
+fi
+PORT="$port" HOST="$host" exec "$node" "$root/scripts/serve.mjs" "$root/dist"

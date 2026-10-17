@@ -1,5 +1,7 @@
 # LED Sign
 
+[![Mechatron Prime CI](https://img.shields.io/endpoint?url=https%3A%2F%2Fthelio-nixos.tail66c90.ts.net%2Fbadges%2Fled_sign.json&style=for-the-badge)](https://thelio-nixos.tail66c90.ts.net/mechatron-prime/)
+
 A scrolling LED marquee for your phone that runs entirely on the device. Type a
 message, tap Show, and hold the phone up. No account, subscription, analytics or
 server-side processing; messages and settings stay in the browser.
@@ -23,12 +25,17 @@ HTML/CSS/JavaScript layer handles the page, storage and browser features.
 
 ## Use it
 
-    ./run          # build and serve http://127.0.0.1:8417/
-    ./build        # optimized static site in dist/  (--debug, --test)
-    ./test         # every suite: Zig core, model, actual WASM, headless browser
+    ./run              # build, then serve http://127.0.0.1:8417/
+    ./build            # optimized static site in dist/  (--debug, --test)
+    ./test             # every suite: Zig core, model, actual WASM, CLI, headless browser
+    bin/led-sign       # serve the built site  (--port N, --host ADDRESS, --about, --help)
 
-All three enter the Nix dev shell themselves (`flake.nix`). `nix build` produces
-the static site; `nix flake check` runs the full suite in the sandbox on Linux.
+All of them enter the Nix dev shell themselves (`flake.nix`). `nix run` builds
+and serves the app; `nix build` produces `result/bin/led-sign` beside the static
+site in `result/dist/`. `nix flake check` runs the full suite in the sandbox on
+Linux, and Mechatron Prime CI, the project's self-hosted Nix continuous
+integration service, builds the same package and test check on every push
+(`.mechatron-prime/targets`).
 
 `dist/` is a plain static site; any HTTPS static host can serve it. Offline use,
 screen wake lock and Home Screen installation need HTTPS (or `localhost`).

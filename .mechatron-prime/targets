@@ -1,0 +1,3 @@
+# Mechatron Prime CI builds these flake attributes for every push.
+packages.x86_64-linux.default
+checks.x86_64-linux.test

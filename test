@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Complete test entry point: native Zig core (ReleaseSafe), optimized web build,
-# model unit tests, actual-WASM ABI tests and headless-browser smoke tests.
+# model unit tests, actual-WASM ABI tests, CLI tests and headless-browser
+# smoke tests.
 # Accumulates failures; exits non-zero if any suite fails or cannot run.
 set -u
 cd -- "$(dirname -- "$0")" || exit 1
@@ -46,6 +47,7 @@ run 'native core (Zig, ReleaseSafe)' zig build test
 if run 'optimized web build' bash scripts/build-web; then
 	run 'web model unit tests' node --test --test-reporter=spec 'tests/unit/*.test.mjs'
 	run 'actual WASM ABI tests' node --test --test-reporter=spec 'tests/integration/*.test.mjs'
+	run 'bin/led-sign CLI tests' bash tests/cli/led-sign.test
 	run 'headless browser smoke tests' browser_suite
 fi
 
