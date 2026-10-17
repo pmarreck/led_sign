@@ -1,0 +1,12 @@
+/AGENTS.md
+/CLAUDE.md
+/inbox/
+/.zig-cache/
+/zig-out/
+/zig-pkg/
+/dist/
+/result*
+/node_modules/
+/.local/
+/.claude/settings.local.json
+

@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Complete test entry point: native Zig core (ReleaseSafe), optimized web build,
+# model unit tests, actual-WASM ABI tests and headless-browser smoke tests.
+# Accumulates failures; exits non-zero if any suite fails or cannot run.
+set -u
+cd -- "$(dirname -- "$0")" || exit 1
+if [ "${LED_SIGN_ENV:-}" != 1 ]; then exec nix develop -c bash ./test "$@"; fi
+
+failures=0
+failed=()
+run() {
+	local name=$1
+	shift
+	printf '\033[1m▶ %s\033[0m\n' "$name"
+	if "$@"; then
+		printf '\033[32m✔ %s\033[0m\n' "$name"
+	else
+		printf '\033[31m✖ %s\033[0m\n' "$name"
+		failures=$((failures + 1))
+		failed+=("$name")
+		return 1
+	fi
+}
+
+find_browser() {
+	if [ -n "${LED_SIGN_CHROMIUM:-}" ]; then printf '%s' "$LED_SIGN_CHROMIUM"; return 0; fi
+	local candidate
+	for candidate in chromium chromium-browser google-chrome-stable google-chrome; do
+		if command -v "$candidate" >/dev/null 2>&1; then command -v "$candidate"; return 0; fi
+	done
+	candidate="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+	if [ -x "$candidate" ]; then printf '%s' "$candidate"; return 0; fi
+	return 1
+}
+
+browser_suite() {
+	local browser
+	if ! browser="$(find_browser)"; then
+		printf 'No Chromium or Chrome found; set LED_SIGN_CHROMIUM. Browser checks are required.\n' >&2
+		return 1
+	fi
+	LED_SIGN_CHROMIUM="$browser" node --test --test-reporter=spec 'tests/browser/*.test.mjs'
+}
+
+run 'native core (Zig, ReleaseSafe)' zig build test
+if run 'optimized web build' bash scripts/build-web; then
+	run 'web model unit tests' node --test --test-reporter=spec 'tests/unit/*.test.mjs'
+	run 'actual WASM ABI tests' node --test --test-reporter=spec 'tests/integration/*.test.mjs'
+	run 'headless browser smoke tests' browser_suite
+fi
+
+if [ "$failures" -ne 0 ]; then
+	printf '\033[31m%d suite(s) failed:\033[0m %s\n' "$failures" "${failed[*]}"
+	exit 1
+fi
+printf '\033[32mAll suites passed.\033[0m\n'

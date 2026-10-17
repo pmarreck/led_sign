@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Builds and serves dist/ for a local preview (default http://127.0.0.1:8417/).
+# PORT and HOST override the address. Service workers, wake lock and Home
+# Screen installation need HTTPS on any host other than localhost.
+set -u
+cd -- "$(dirname -- "$0")" || exit 1
+if [ "${LED_SIGN_ENV:-}" != 1 ]; then exec nix develop -c bash ./run "$@"; fi
+bash ./build "$@" || exit 1
+exec node scripts/serve.mjs dist

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Builds the self-contained static site into dist/: optimized WASM, web
+# adapter, generated icons and a content-versioned offline service worker.
+set -u
+cd -- "$(dirname -- "$0")/.." || exit 1
+optimize="${LED_SIGN_OPTIMIZE:-ReleaseFast}"
+zig build -Doptimize="$optimize" || exit 1
+staging="dist.tmp.$$"
+mkdir -p "$staging" || exit 1
+cp web/index.html web/style.css web/manifest.webmanifest web/app.mjs web/led.mjs web/model.mjs web/raster.mjs "$staging/" &&
+	cp zig-out/bin/led-sign.wasm "$staging/" &&
+	node scripts/make-icons.mjs "$staging" || { mv "$staging" "${TMPDIR:-/tmp}/"; exit 1; }
+# The cache version is a digest of every shipped asset, so any change to the
+# site invalidates the offline cache and nothing stale survives an update.
+version="$(cd "$staging" && find . -type f | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -c1-16)"
+sed "s/__CACHE_VERSION__/$version/" web/sw.js > "$staging/sw.js" || exit 1
+if [ -e dist ]; then mv dist "${TMPDIR:-/tmp}/led-sign-dist-old.$$"; fi
+mv "$staging" dist

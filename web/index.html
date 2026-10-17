@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>LED Sign</title>
+	<meta name="description" content="A scrolling LED sign that runs entirely on your device.">
+	<meta name="theme-color" content="#1c1a21">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="LED Sign">
+	<link rel="manifest" href="manifest.webmanifest">
+	<link rel="icon" href="icon-192.png" type="image/png">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<link rel="stylesheet" href="style.css">
+	<script type="module" src="app.mjs"></script>
+</head>
+<body>
+	<main id="editor" class="editor">
+		<header class="topbar">
+			<h1>LED Sign</h1>
+			<nav class="tools" aria-label="App">
+				<button type="button" id="install-open" class="tool install" hidden>Add to Home Screen</button>
+				<button type="button" id="settings-open" class="tool icon" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
+			</nav>
+		</header>
+
+		<button type="button" id="preview" class="preview" aria-label="Show the sign full screen">
+			<canvas id="preview-canvas"></canvas>
+		</button>
+
+		<section class="compose" aria-label="Message">
+			<label class="visually-hidden" for="message">Message</label>
+			<textarea id="message" rows="2" placeholder="Type your message" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go"></textarea>
+			<p id="message-error" class="error" role="alert" hidden></p>
+			<div class="compose-actions">
+				<button type="button" id="show" class="primary">Show</button>
+				<button type="button" id="save-message" class="secondary">Save</button>
+				<button type="button" id="share" class="secondary">Share link</button>
+			</div>
+		</section>
+
+		<section class="group" aria-labelledby="color-h">
+			<h2 id="color-h">Color</h2>
+			<label class="slider hue">
+				<span>Hue</span>
+				<input type="range" id="hue" min="0" max="360" step="1">
+			</label>
+			<label class="slider intensity">
+				<span>Color intensity</span>
+				<input type="range" id="saturation" min="0" max="1" step="0.01">
+			</label>
+			<label class="slider">
+				<span>Brightness</span>
+				<input type="range" id="brightness" min="0.1" max="1" step="0.01">
+			</label>
+		</section>
+
+		<section class="group" aria-labelledby="motion-h">
+			<h2 id="motion-h">Motion and size</h2>
+			<label class="slider">
+				<span>Speed <output id="speed-out"></output></span>
+				<input type="range" id="speed" min="0" max="60" step="1">
+			</label>
+			<label class="slider">
+				<span>LED size</span>
+				<input type="range" id="zoom" min="0" max="1" step="0.01">
+			</label>
+		</section>
+
+		<section class="group" aria-labelledby="look-h">
+			<h2 id="look-h">Look</h2>
+			<fieldset class="choices fonts">
+				<legend>Font</legend>
+				<label><input type="radio" name="font" value="mono"><span class="f-mono">Mono</span></label>
+				<label><input type="radio" name="font" value="sans"><span class="f-sans">Sans</span></label>
+				<label><input type="radio" name="font" value="serif"><span class="f-serif">Serif</span></label>
+				<label><input type="radio" name="font" value="bold"><span class="f-bold">Heavy</span></label>
+				<label><input type="radio" name="font" value="rounded"><span class="f-rounded">Rounded</span></label>
+			</fieldset>
+			<fieldset class="choices shapes">
+				<legend>LED shape</legend>
+				<label><input type="radio" name="shape" value="square"><span><i class="dot square"></i>Square</span></label>
+				<label><input type="radio" name="shape" value="round"><span><i class="dot round"></i>Round</span></label>
+			</fieldset>
+			<div class="switches">
+				<label class="switch"><input type="checkbox" id="repeat"><span>Repeat</span></label>
+				<label class="switch"><input type="checkbox" id="invert"><span>Invert colors</span></label>
+				<label class="switch"><input type="checkbox" id="mirror"><span>Mirror</span></label>
+				<label class="switch"><input type="checkbox" id="trueBlack"><span>True black</span></label>
+				<label class="switch"><input type="checkbox" id="blink"><span>Blink</span></label>
+			</div>
+			<p id="blink-note" class="note" hidden>Blink flashes the whole sign twice a second.</p>
+		</section>
+
+		<section class="group" aria-labelledby="saved-h">
+			<h2 id="saved-h">Saved messages</h2>
+			<ul id="saved" class="saved"></ul>
+			<p id="saved-empty" class="note">Messages you save appear here, ready to show again.</p>
+			<p id="storage-note" class="note" hidden>This browser is blocking storage, so settings and saved messages last only until you close the page.</p>
+		</section>
+	</main>
+
+	<div id="display" class="display" hidden>
+		<canvas id="sign-canvas"></canvas>
+		<div id="display-controls" class="display-controls">
+			<p id="display-note" class="display-note" role="status"></p>
+			<div class="display-buttons">
+				<button type="button" id="pause">Pause</button>
+				<button type="button" id="exit">Done</button>
+			</div>
+		</div>
+	</div>
+
+	<dialog id="settings" class="sheet" aria-labelledby="settings-h">
+		<form method="dialog">
+			<header class="sheet-head"><h2 id="settings-h">Settings</h2><button class="primary">Done</button></header>
+			<div class="switches stacked">
+				<label class="switch"><input type="checkbox" id="startOnRotation"><span>Start on rotation<small>Show the sign when you turn the phone sideways.</small></span></label>
+				<label class="switch"><input type="checkbox" id="allowPortrait"><span>Allow portrait<small>Otherwise the sign turns to run along the long edge.</small></span></label>
+				<label class="switch"><input type="checkbox" id="entireScreen"><span>Use entire screen<small>Turn off to keep LEDs clear of the notch and rounded corners.</small></span></label>
+				<label class="switch" id="vibrate-row" hidden><input type="checkbox" id="vibrate"><span>Vibrate when finished<small>For messages that do not repeat.</small></span></label>
+			</div>
+			<h3>Not available in a web app</h3>
+			<dl class="limits">
+				<dt>Maximum screen brightness</dt><dd>Websites cannot change it. Raise brightness in Control Center before showing the sign.</dd>
+				<dt>Haptics and camera flash</dt><dd>Safari offers neither to websites. Some Android browsers can vibrate, and the option above appears when they can.</dd>
+				<dt>Share extension</dt><dd>Use Share link instead. Opening the link shows its message right away.</dd>
+				<dt>Keeping the screen on</dt><dd id="wake-status">The sign asks the browser to keep the screen awake while it is showing.</dd>
+			</dl>
+			<p class="note">Messages and settings stay on this device. Nothing is sent anywhere.</p>
+		</form>
+	</dialog>
+
+	<dialog id="install" class="sheet" aria-labelledby="install-h">
+		<form method="dialog">
+			<header class="sheet-head"><h2 id="install-h">Add to Home Screen</h2><button class="primary">Close</button></header>
+			<p>Installed, the sign opens like an app, fills the screen and works offline.</p>
+			<div id="install-ios">
+				<ol class="steps">
+					<li>In Safari, tap the Share button. On newer iPhones it may sit behind the ••• button.</li>
+					<li>Scroll down and choose Add to Home Screen. If you do not see it, tap View More.</li>
+					<li>Leave Open as Web App on, then tap Add.</li>
+				</ol>
+				<p class="note">Websites cannot open this sheet for you; Apple reserves it for the Share menu.</p>
+			</div>
+			<div id="install-prompt" hidden>
+				<button type="button" id="install-now" class="primary wide">Install</button>
+			</div>
+			<div id="install-other" hidden>
+				<p>Open your browser menu and choose Install app or Add to Home screen.</p>
+			</div>
+		</form>
+	</dialog>
+
+	<noscript><p class="error">LED Sign needs JavaScript and WebAssembly.</p></noscript>
+</body>
+</html>

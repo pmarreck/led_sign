@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Builds the static site into dist/ (optimized by default).
+#   --debug  build the WASM core in Debug mode
+#   --test   run the complete test suite after building
+set -u
+cd -- "$(dirname -- "$0")" || exit 1
+if [ "${LED_SIGN_ENV:-}" != 1 ]; then exec nix develop -c bash ./build "$@"; fi
+run_tests=0
+for arg in "$@"; do
+	case "$arg" in
+		--debug) export LED_SIGN_OPTIMIZE=Debug ;;
+		--test) run_tests=1 ;;
+		-h|--help) sed -n '2,4p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+		*) printf 'unknown option: %s\n' "$arg" >&2; exit 2 ;;
+	esac
+done
+bash scripts/build-web || exit 1
+if [ "${LED_SIGN_OPTIMIZE:-}" = Debug ]; then printf '\033[33mDEBUG BUILD!\033[0m\n' >&2; fi
+printf 'Built dist/\n' >&2
+if [ "$run_tests" = 1 ]; then exec bash ./test; fi

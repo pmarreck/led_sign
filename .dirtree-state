@@ -1,0 +1,17 @@
+# Dirtree: Stateful directory trees in the CLI for humans and LLMs. https://github.com/pmarreck/dirtree
+ver=1.2
+annotate=[
+	scripts/build-web = Builds dist/: optimized WASM, assets, icons, stamped SW
+	scripts/make-icons.mjs = Dependency-free PNG icon generator
+	scripts/serve.mjs = Static server for dist/ (./run and browser tests)
+	src/core.zig = Pure Zig LED core: scroll position, HSV color, validation, per-LED RGBA frame render + tests
+	src/wasm.zig = WASM exports: static mask/frame buffers, render(), complete()
+	tests/browser/smoke.test.mjs = Headless Chromium via CDP: pixel checks for square/round LEDs, offline, install flow
+	tests/integration/wasm.test.mjs = Tests against compiled dist/led-sign.wasm ABI
+	tests/unit/model.test.mjs = Unit tests for web/model.mjs
+	web/app.mjs = DOM wiring: controls, display mode, wake lock, fullscreen, install sheet, service worker
+	web/led.mjs = Sign class: feeds WASM mask, paints frame at integer cell scale with LED shape pattern
+	web/model.mjs = Pure settings normalize, viewport/displayLayout square-cell math, LED tile alpha, storage, share links
+	web/raster.mjs = System-font text rasterized to a rows-tall alpha mask
+	web/sw.js = Cache-first offline service worker; version stamped at build
+]
