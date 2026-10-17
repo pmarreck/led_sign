@@ -1,10 +1,26 @@
 # LED Sign
 
 [![Mechatron Prime CI](https://img.shields.io/endpoint?url=https%3A%2F%2Fthelio-nixos.tail66c90.ts.net%2Fbadges%2Fled_sign.json&style=for-the-badge)](https://thelio-nixos.tail66c90.ts.net/mechatron-prime/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 
 A scrolling LED marquee for your phone that runs entirely on the device. Type a
 message, tap Show, and hold the phone up. No account, subscription, analytics or
 server-side processing; messages and settings stay in the browser.
+
+**[Open LED Sign](https://pmarreck.github.io/led_sign/)**. It works offline
+once loaded, and can be added to the Home Screen as an app.
+
+![A landscape phone showing HELLO in cyan square LEDs](docs/sign-square.png)
+
+<table>
+<tr>
+<td width="38%"><img src="docs/editor.png" alt="The editor: live preview, message box, Show, Save and Share link buttons, and color sliders"></td>
+<td><img src="docs/sign-round.png" alt="OPEN in amber round LEDs"><br><br>
+Pick any hue, square or round LEDs, five font styles, speed and LED size.
+Messages can blink, repeat, run mirrored or inverted, and be saved or shared
+as a link that opens straight into the sign.</td>
+</tr>
+</table>
 
 The renderer is written in Zig and compiled to a 3 KB WebAssembly module. A thin
 HTML/CSS/JavaScript layer handles the page, storage and browser features.
@@ -41,8 +57,11 @@ Linux, and Mechatron Prime CI, the project's self-hosted Nix continuous
 integration service, builds the same package and test check on every push
 (`.mechatron-prime/targets`).
 
-`dist/` is a plain static site; any HTTPS static host can serve it. Offline use,
-screen wake lock and Home Screen installation need HTTPS (or `localhost`).
+`dist/` is a plain static site that works from any directory on any HTTPS
+static host; offline use, screen wake lock and Home Screen installation need
+HTTPS (or `localhost`). The public copy is deployed to GitHub Pages by
+`.github/workflows/pages.yml`, which builds the same Nix package on every push
+to `yolo`. That workflow only deploys; testing is Mechatron Prime CI's job.
 
 ### Installing on iPhone
 
@@ -78,7 +97,8 @@ than shortened.
 Automated: native Zig tests, model tests, tests against the compiled WASM, and
 headless Chromium tests that inspect rendered canvas pixels for uniform square
 and circular LEDs in portrait, landscape and several device pixel ratios, plus
-offline loading and the install flow under an iPhone user agent.
+offline loading (also from a subdirectory, as on GitHub Pages) and the install
+flow under an iPhone user agent.
 
 Not yet verified: Safari on a real iPhone (rendering, Home Screen install,
 rotation, wake lock, offline). Until that happens, no iOS behavior should be
@@ -98,6 +118,8 @@ considered confirmed.
 | `scripts/` | Web build, icon generator, local static server |
 | `bin/led-sign` | Serves the built site; also the Nix package's command |
 | `tests/` | `unit`, `integration` (actual WASM), `cli` and `browser` suites |
+| `docs/` | README screenshots |
+| `.github/workflows/pages.yml` | GitHub Pages deployment of the Nix-built site |
 
 ## License
 

@@ -4,13 +4,14 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { serve } from '../../scripts/serve.mjs';
 
 const BROWSER = process.env.LED_SIGN_CHROMIUM || 'chromium';
 let server, browser, profile, cdp, origin;
+const extraServers = [];
 
 function launch() {
 	return new Promise((ok, fail) => {
@@ -53,7 +54,7 @@ function connect(url) {
 	return new Promise((ok) => ws.addEventListener('open', () => ok({ send, once, close: () => ws.close() })));
 }
 
-async function openPage(width, height, dpr, hash = '', { userAgent, preload } = {}) {
+async function openPage(width, height, dpr, hash = '', { userAgent, preload, base = `${origin}/` } = {}) {
 	const { browserContextId } = await cdp.send('Target.createBrowserContext');
 	const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank', browserContextId });
 	const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
@@ -82,7 +83,7 @@ async function openPage(width, height, dpr, hash = '', { userAgent, preload } = 
 	if (userAgent) await s('Emulation.setUserAgentOverride', { userAgent });
 	if (preload) await s('Page.addScriptToEvaluateOnNewDocument', { source: preload });
 	const loaded = cdp.once('Page.loadEventFired', sessionId);
-	await s('Page.navigate', { url: `${origin}/${hash}` });
+	await s('Page.navigate', { url: `${base}${hash}` });
 	await loaded;
 	await page.eval(READY);
 	return page;
@@ -157,6 +158,7 @@ after(async () => {
 	}
 	cdp?.close();
 	server?.close();
+	for (const s of extraServers) { s.closeAllConnections(); s.close(); }
 	if (profile) await rm(profile, { recursive: true, force: true });
 });
 
@@ -277,6 +279,32 @@ test('the service worker makes the site load offline', { timeout: 60000 }, async
 	await page.close();
 });
 
+
+// Project sites on GitHub Pages live under /<repository>/, so the app must
+// keep every request, the service worker scope and offline loading inside
+// whatever directory it is served from.
+test('served from a subdirectory, the app stays inside it and works offline', { timeout: 60000 }, async () => {
+	const site = join(profile, 'site');
+	await mkdir(site);
+	await symlink(resolve(new URL('../../dist/', import.meta.url).pathname), join(site, 'led_sign'));
+	const sub = await serve(site);
+	extraServers.push(sub);
+	const base = `http://127.0.0.1:${sub.address().port}/led_sign/`;
+	const page = await openPage(393, 852, 3, '', { base });
+	await page.eval(`navigator.serviceWorker.ready.then(() => true)`);
+	const state = await page.eval(`navigator.serviceWorker.getRegistration().then((r) => ({
+		scope: r.scope, controlled: navigator.serviceWorker.controller !== null,
+		manifest: new URL(document.querySelector('link[rel=manifest]').href).pathname,
+		outside: performance.getEntriesByType('resource').map((e) => e.name).filter((u) => !u.startsWith(${JSON.stringify(base)})),
+	}))`);
+	assert.deepEqual(state, { scope: base, controlled: true, manifest: '/led_sign/manifest.webmanifest', outside: [] });
+	await page.s('Network.enable');
+	await page.s('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+	sub.closeAllConnections();
+	await page.reload();
+	assert.equal(await page.eval(`document.documentElement.dataset.ready`), '1');
+	await page.close();
+});
 const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 
 test('iPhone Safari gets an obvious Add to Home Screen button with Share-menu steps', { timeout: 60000 }, async () => {
