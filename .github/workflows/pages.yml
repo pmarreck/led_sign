@@ -1,6 +1,6 @@
-# Publishes the static site to GitHub Pages on every push to yolo. It builds the
-# same Nix package that Mechatron Prime CI builds and tests; this workflow only
-# deploys, it is not the project's CI.
+# Publishes the static site to GitHub Pages on every push to yolo, only after
+# the same Nix test check that Mechatron Prime CI runs has passed here too.
+# Mechatron Prime CI remains the project's CI; this workflow gates and deploys.
 name: Deploy to GitHub Pages
 
 on:
@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
+      # The full test suite gates the deploy: a failing commit is never published.
+      - name: Test
+        run: nix build --no-link .#checks.x86_64-linux.test
       - name: Build
         run: |
           nix build .#default

@@ -1,7 +1,7 @@
 # Dirtree: Stateful directory trees in the CLI for humans and LLMs. https://github.com/pmarreck/dirtree
 ver=1.2
 annotate=[
-	.github/workflows/pages.yml = GitHub Pages deploy: nix build .#default, publish result/dist on push to yolo (deploy only, not CI)
+	.github/workflows/pages.yml = GitHub Pages deploy on push to yolo: runs the Nix test check, then builds and publishes result/dist
 	.mechatron-prime/targets = Flake attributes Mechatron Prime CI builds on each push
 	VERSION = Single source of the release version, read by bin/led-sign and flake.nix
 	bin/led-sign = Portable launcher: serves dist/ via scripts/serve.mjs (--port, --host, --about, --help); enters Nix in a checkout, pinned Node in the package

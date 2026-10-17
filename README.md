@@ -60,8 +60,9 @@ integration service, builds the same package and test check on every push
 `dist/` is a plain static site that works from any directory on any HTTPS
 static host; offline use, screen wake lock and Home Screen installation need
 HTTPS (or `localhost`). The public copy is deployed to GitHub Pages by
-`.github/workflows/pages.yml`, which builds the same Nix package on every push
-to `yolo`. That workflow only deploys; testing is Mechatron Prime CI's job.
+`.github/workflows/pages.yml` on every push to `yolo`. It first runs the same
+Nix test check as Mechatron Prime CI and publishes nothing unless every suite
+passes.
 
 ### Installing on iPhone
 

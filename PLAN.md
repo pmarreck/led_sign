@@ -13,8 +13,9 @@
 - [x] Add a `bin/led-sign` command that serves the built app, with CLI tests in ./test and a matching Nix package layout. (2026-10-17 00:29 EDT)
 - [x] Add Mechatron Prime CI targets and the README badge, then provision the webhook. (2026-10-17 00:30 EDT)
 - [x] Review history for private details, then publish the repository publicly on GitHub (BDFN approved 2026-10-17) and confirm the first CI build: 74d1a04 passed in 73 s, badge PASSING. (2026-10-17 00:46 EDT)
-- [ ] Obtain native iPhone visual, Home Screen, rotation, offline and wake-lock verification.
+- [x] BDFN verified the live app on iPhone: works (2026-10-17 09:05 EDT).
 - [ ] Decide portrait rotation direction (currently 90° clockwise) after on-device check.
 - [x] Host the app on GitHub Pages (BDFN choice): https://pmarreck.github.io/led_sign/ deployed by .github/workflows/pages.yml; subpath browser test added; live site verified in headless Chromium, including service worker scope and offline reload (2026-10-17 08:35 EDT). Mechatron Prime CI passed 529f7d9 in 75 s.
 - [x] README: screenshots, MIT badge and a link to the live app (2026-10-17 08:24 EDT).
+- [x] Gate the GitHub Pages deploy on the Nix test check (BDFN choice 1A, 2026-10-17).
 - [ ] Browser checks on macOS: nixpkgs has no Darwin Chromium; ./test needs LED_SIGN_CHROMIUM or Google Chrome there.
