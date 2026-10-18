@@ -18,4 +18,5 @@
 - [x] Host the app on GitHub Pages (BDFN choice): https://pmarreck.github.io/led_sign/ deployed by .github/workflows/pages.yml; subpath browser test added; live site verified in headless Chromium, including service worker scope and offline reload (2026-10-17 08:35 EDT). Mechatron Prime CI passed 529f7d9 in 75 s.
 - [x] README: screenshots, MIT badge and a link to the live app (2026-10-17 08:24 EDT).
 - [x] Gate the GitHub Pages deploy on the Nix test check (BDFN choice 1A, 2026-10-17).
+- [x] Automatic history: Recent list of the last 20 shown messages, with Save and Clear (BDFN request, 2026-10-17 22:03 EDT).
 - [ ] Browser checks on macOS: nixpkgs has no Darwin Chromium; ./test needs LED_SIGN_CHROMIUM or Google Chrome there.

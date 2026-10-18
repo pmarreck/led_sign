@@ -257,6 +257,28 @@ test('an oversized message is refused with an explanation, never truncated', { t
 	await page.close();
 });
 
+test('shown messages appear in Recent, persist, can be saved and cleared', { timeout: 60000 }, async () => {
+	const page = await openPage(393, 852, 2);
+	const recent = `[...document.querySelectorAll('#recent .use')].map((b) => b.textContent)`;
+	assert.deepEqual(await page.eval(recent), []);
+	assert.equal(await page.eval(`!document.getElementById('recent-empty').hidden`), true);
+	for (const text of ['FIRST', 'SECOND', 'FIRST']) {
+		await page.eval(`(() => { const t = document.getElementById('message'); t.value = ${JSON.stringify(text)}; t.dispatchEvent(new Event('input')); document.getElementById('show').click(); document.getElementById('exit').click(); })()`);
+	}
+	assert.deepEqual(await page.eval(recent), ['FIRST', 'SECOND']);
+	await page.reload();
+	assert.deepEqual(await page.eval(recent), ['FIRST', 'SECOND']);
+	await page.eval(`document.querySelector('#recent li:nth-child(2) .keep').click()`);
+	assert.deepEqual(await page.eval(`[...document.querySelectorAll('#saved .use')].map((b) => b.textContent)`), ['SECOND']);
+	assert.deepEqual(await page.eval(`[...document.querySelectorAll('#recent .keep')].map((b) => [b.textContent, b.disabled])`), [['Save', false], ['Saved', true]]);
+	await page.eval(`document.getElementById('recent-clear').click()`);
+	assert.deepEqual(await page.eval(recent), []);
+	assert.equal(await page.eval(`!document.getElementById('recent-empty').hidden && document.getElementById('recent-clear').hidden`), true);
+	await page.reload();
+	assert.deepEqual(await page.eval(recent), []);
+	await page.close();
+});
+
 test('a share link opens straight into the sign with its text', { timeout: 60000 }, async () => {
 	const page = await openPage(852, 393, 2, '#text=%E4%BD%A0%E5%A5%BD%20%F0%9F%9A%80&show=1');
 	await page.eval(FRAMES);

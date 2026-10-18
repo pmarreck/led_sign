@@ -11,6 +11,8 @@ export const FONTS = Object.freeze(['mono', 'sans', 'serif', 'bold', 'rounded'])
 export const SHAPES = Object.freeze(['square', 'round']);
 const SETTINGS_KEY = 'led-sign:settings:v1';
 const MESSAGES_KEY = 'led-sign:messages:v1';
+const HISTORY_KEY = 'led-sign:history:v1';
+export const HISTORY_LIMIT = 20;
 
 export const DEFAULTS = Object.freeze({
 	text: 'HELLO WORLD',
@@ -121,11 +123,13 @@ function writeJson(storage, key, value) {
 export const restore = (storage) => normalize(readJson(storage, SETTINGS_KEY));
 export const save = (storage, settings) => writeJson(storage, SETTINGS_KEY, normalize(settings));
 
-export function restoreMessages(storage) {
-	const list = readJson(storage, MESSAGES_KEY);
+function restoreList(storage, key) {
+	const list = readJson(storage, key);
 	if (!Array.isArray(list)) return [];
 	return list.filter((m) => typeof m === 'string').reduceRight((acc, m) => addMessage(acc, m), []);
 }
+
+export const restoreMessages = (storage) => restoreList(storage, MESSAGES_KEY);
 
 export const saveMessages = (storage, list) => writeJson(storage, MESSAGES_KEY, list);
 
@@ -136,6 +140,12 @@ export function addMessage(list, text) {
 }
 
 export const removeMessage = (list, text) => list.filter((m) => m !== text);
+
+// Automatic history of shown messages: same most-recent-first, deduplicated
+// order as saved messages, capped at HISTORY_LIMIT and stored separately.
+export const recordHistory = (list, text) => addMessage(list, text).slice(0, HISTORY_LIMIT);
+export const restoreHistory = (storage) => restoreList(storage, HISTORY_KEY).slice(0, HISTORY_LIMIT);
+export const saveHistory = (storage, list) => writeJson(storage, HISTORY_KEY, list);
 
 // URL fragment for sharing a sign; fragments never reach a server.
 export function shareHash(text, show) {

@@ -2,6 +2,7 @@
 // guidance and the service worker around the pure model and WASM sign.
 import {
 	normalize, restore, save, restoreMessages, saveMessages, addMessage, removeMessage,
+	restoreHistory, saveHistory, recordHistory,
 	rowsForZoom, viewport, displayLayout, parseShare, shareHash, MAX_TEXT_COLS,
 } from './model.mjs';
 import { loadModule, Sign } from './led.mjs';
@@ -26,6 +27,7 @@ function storageOrNull() {
 const storage = storageOrNull();
 let settings = restore(storage);
 let messages = restoreMessages(storage);
+let recent = restoreHistory(storage);
 let vibrateOnFinish = false;
 
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches ||
@@ -118,10 +120,12 @@ function update(patch) {
 	if (before.text !== settings.text || before.speed !== settings.speed || before.repeat !== settings.repeat) previewStart = performance.now();
 }
 
-function renderSaved() {
-	const list = $('saved');
+// Fills a message list with one show button per entry plus a secondary
+// action button (Remove for saved messages, Save for recent ones). Entries
+// for which action.done holds show the done label with the button disabled.
+function renderList(list, items, action) {
 	list.replaceChildren();
-	for (const text of messages) {
+	for (const text of items) {
 		const li = document.createElement('li');
 		const use = document.createElement('button');
 		use.type = 'button';
@@ -129,20 +133,43 @@ function renderSaved() {
 		use.textContent = text;
 		use.title = 'Show this message';
 		use.addEventListener('click', () => { update({ text }); showSign(); });
-		const remove = document.createElement('button');
-		remove.type = 'button';
-		remove.className = 'remove';
-		remove.textContent = 'Remove';
-		remove.setAttribute('aria-label', `Remove ${text}`);
-		remove.addEventListener('click', () => {
-			messages = removeMessage(messages, text);
-			saveMessages(storage, messages);
-			renderSaved();
-		});
-		li.append(use, remove);
+		const extra = document.createElement('button');
+		extra.type = 'button';
+		extra.className = action.className;
+		const done = action.done?.(text) ?? false;
+		extra.textContent = done ? action.doneLabel : action.label;
+		extra.disabled = done;
+		extra.setAttribute('aria-label', `${extra.textContent} ${text}`);
+		extra.addEventListener('click', () => action.run(text));
+		li.append(use, extra);
 		list.append(li);
 	}
+}
+
+function renderSaved() {
+	renderList($('saved'), messages, { className: 'remove', label: 'Remove', run: (text) => {
+		messages = removeMessage(messages, text);
+		saveMessages(storage, messages);
+		renderSaved();
+	} });
 	$('saved-empty').hidden = messages.length > 0;
+	renderRecent();
+}
+
+function renderRecent() {
+	renderList($('recent'), recent, { className: 'keep', label: 'Save', doneLabel: 'Saved', done: (text) => messages.includes(text), run: (text) => {
+		messages = addMessage(messages, text);
+		saveMessages(storage, messages);
+		renderSaved();
+	} });
+	$('recent-empty').hidden = recent.length > 0;
+	$('recent-clear').hidden = recent.length === 0;
+}
+
+function setHistory(list) {
+	recent = list;
+	saveHistory(storage, recent);
+	renderRecent();
 }
 
 function bindControls() {
@@ -163,6 +190,7 @@ function bindControls() {
 		renderSaved();
 	});
 	$('share').addEventListener('click', shareLink);
+	$('recent-clear').addEventListener('click', () => setHistory([]));
 	$('settings-open').addEventListener('click', () => $('settings').showModal());
 	if ('vibrate' in navigator) {
 		$('vibrate-row').hidden = false;
@@ -254,6 +282,7 @@ function showControls(stay = false) {
 
 function showSign() {
 	if ($('show').disabled || display.active) return;
+	setHistory(recordHistory(recent, settings.text));
 	display.active = true;
 	display.paused = false;
 	display.finished = false;
@@ -371,7 +400,7 @@ async function main() {
 	}
 	$('storage-note').hidden = storage !== null;
 	syncControls();
-	renderSaved();
+	renderSaved(); // also renders Recent, whose Save state depends on it
 	bindControls();
 	bindDisplay();
 	bindInstall();

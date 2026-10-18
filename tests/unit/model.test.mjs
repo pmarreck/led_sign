@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
 	DEFAULTS, MAX_COLS, MAX_TEXT_COLS, normalize, rowsForZoom, viewport, ledGeometry,
-	save, restore, saveMessages, restoreMessages, addMessage, removeMessage, parseShare, shareHash, textFits,
+	save, restore, saveMessages, restoreMessages, addMessage, removeMessage, recordHistory, restoreHistory, saveHistory, HISTORY_LIMIT, parseShare, shareHash, textFits,
 } from '../../web/model.mjs';
 
 test('settings sanitize untrusted storage without losing Unicode', () => {
@@ -91,6 +91,33 @@ test('saved messages are most-recent-first and deduplicated', () => {
 	assert.deepEqual(addMessage(['a'], '  '), ['a']);
 	assert.deepEqual(removeMessage(['a', 'b', 'c'], 'b'), ['a', 'c']);
 	const input = ['a']; addMessage(input, 'z'); assert.deepEqual(input, ['a']);
+});
+
+test('history keeps the most recent distinct messages, newest first, capped', () => {
+	assert.equal(HISTORY_LIMIT, 20);
+	assert.deepEqual(recordHistory(['a', 'b'], 'b'), ['b', 'a']);
+	assert.deepEqual(recordHistory(['a'], ' \n'), ['a']);
+	let list = [];
+	for (let i = 0; i < HISTORY_LIMIT + 5; i++) list = recordHistory(list, `m${i}`);
+	assert.equal(list.length, HISTORY_LIMIT);
+	assert.equal(list[0], `m${HISTORY_LIMIT + 4}`);
+	assert.equal(list.at(-1), 'm5');
+	const input = ['a']; recordHistory(input, 'z'); assert.deepEqual(input, ['a']);
+});
+
+test('history persists separately from saved messages and survives bad storage', () => {
+	const store = new Map(); const io = { setItem: (k, v) => store.set(k, v), getItem: (k) => store.get(k) ?? null };
+	assert.equal(saveHistory(io, ['shown']), true);
+	assert.equal(saveMessages(io, ['kept']), true);
+	assert.deepEqual(restoreHistory(io), ['shown']);
+	assert.deepEqual(restoreMessages(io), ['kept']);
+	const many = Array.from({ length: 30 }, (_, i) => `x${i}`);
+	assert.deepEqual(restoreHistory({ getItem: () => JSON.stringify(many) }), many.slice(0, HISTORY_LIMIT));
+	assert.deepEqual(restoreHistory({ getItem: () => '[1,"ok",null,"ok"]' }), ['ok']);
+	assert.deepEqual(restoreHistory({ getItem: () => '{broken' }), []);
+	const denied = { getItem() { throw Error('denied'); }, setItem() { throw Error('quota'); } };
+	assert.deepEqual(restoreHistory(denied), []);
+	assert.equal(saveHistory(denied, ['a']), false);
 });
 
 test('share links round-trip Unicode text and the show flag', () => {

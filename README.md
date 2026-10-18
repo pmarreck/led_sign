@@ -79,7 +79,7 @@ prompt get a direct Install button instead.
 | Hue, color intensity, brightness, speed, LED size | Implemented |
 | Fonts | Five styles: mono (Berkeley Mono or a built-in LED pixel font), sans, serif, heavy, rounded |
 | Square or round LEDs, invert, mirror, blink, repeat, true black | Implemented; blink is off by default |
-| Saved messages | Implemented, stored locally; works without storage for the session |
+| Saved and recent messages | Saved on request; the last 20 shown messages are kept automatically (Recent, clearable). Stored locally; works without storage for the session |
 | Share | Share link: a URL fragment that opens straight into the sign |
 | Start on rotation, allow portrait, use entire screen | Implemented (portrait rotates the sign unless allowed) |
 | Offline use | Service worker cache, versioned by a digest of the build |
